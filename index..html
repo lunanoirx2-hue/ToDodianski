@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול משימות - Monday Style</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Rubik -->
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rubik', 'sans-serif'],
+                    },
+                    colors: {
+                        monday: {
+                            blue: '#0073ea',
+                            green: '#00c875',
+                            red: '#e2445c',
+                            orange: '#fdab3d',
+                            yellow: '#ffcc00',
+                            purple: '#a25ddc',
+                            darkPurple: '#784bd1',
+                            grey: '#c4c4c4',
+                            dark: '#323338'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f6f7fb;
+            color: #323338;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .badge-shadow {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .task-row:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- Top Header Navigation -->
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <div class="flex items-center space-x-4 space-x-reverse">
+            <div class="flex items-center space-x-2 space-x-reverse text-monday-blue font-bold text-2xl">
+                <i class="fa-solid fa-square-poll-vertical text-3xl"></i>
+                <span>TaskDay</span>
+            </div>
+            <span class="text-xs bg-blue-100 text-monday-blue font-semibold px-2.5 py-1 rounded-full">סגנון Monday</span>
+        </div>
+
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <button onclick="addNewGroup()" class="bg-monday-blue hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center shadow-md">
+                <i class="fa-solid fa-plus ml-2"></i> הוסף קבוצה חדשה
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Board Area -->
+    <main class="flex-1 p-4 md:p-8 max-w-[1600px] w-full mx-auto">
+        <!-- Board Header -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-monday-blue"></i>
+                    לוח משימות ראשי
+                </h1>
+                <p class="text-gray-500 text-sm mt-1">נהל את הקטגוריות, המשימות והמדיה שלך במקום אחד בצורה נוחה</p>
+            </div>
+
+            <!-- Stats Bar -->
+            <div id="statsContainer" class="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm text-sm">
+                <!-- Dynamic Stats -->
+            </div>
+        </div>
+
+        <!-- Groups Container -->
+        <div id="groupsContainer" class="space-y-8">
+            <!-- Dynamic Groups will be injected here -->
+        </div>
+    </main>
+
+    <!-- Task Detail Drawer / Modal -->
+    <div id="taskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex justify-end transition-opacity duration-300">
+        <div class="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="modalPanel">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <span id="modalGroupBadge" class="px-3 py-1 rounded-full text-xs font-semibold text-white"></span>
+                    <input type="text" id="modalTaskTitle" onchange="updateTaskFromModal()" class="text-xl font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:outline-none px-1 py-0.5 rounded">
+                </div>
+                <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-200 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Tabs & Body -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Status & Priority Quick Select -->
+                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">סטטוס</label>
+                        <select id="modalStatusSelect" onchange="updateTaskFromModal()" class="w-full p-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-monday-blue outline-none">
+                            <option value="בוצע">🟢 בוצע</option>
+                            <option value="בעבודה">🟠 בעבודה</option>
+                            <option value="נעצר">🔴 נעצר</option>
+                            <option value="טרם התחיל">⚪ טרם התחיל</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">עדיפות</label>
+                        <select id="modalPrioritySelect" onchange="updateTaskFromModal()" class="w-full p-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-monday-blue outline-none">
+                            <option value="דחוף">🔥 דחוף ביותר</option>
+                            <option value="גבוהה">⚡ גבוהה</option>
+                            <option value="בינונית">🔷 בינונית</option>
+                            <option value="נמוכה">🔹 נמוכה</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Comments & Notes Section -->
+                <div>
+                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
+                        <i class="fa-regular fa-comments text-monday-blue"></i> תגובות והערות
+                    </h3>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <textarea id="newCommentInput" rows="2" placeholder="רשום תגובה או הערה חדשה..." class="w-full p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue focus:outline-none resize-none"></textarea>
+                        <button onclick="addComment()" class="bg-monday-blue hover:bg-blue-600 text-white px-4 rounded-xl text-sm font-medium self-end py-3 flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                    <div id="commentsList" class="space-y-2">
+                        <!-- Dynamic Comments -->
+                    </div>
+                </div>
+
+                <hr class="border-gray-200">
+
+                <!-- Media & File Attachments Section -->
+                <div>
+                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-paperclip text-monday-blue"></i> קבצים ותמונות מצורפות
+                    </h3>
+
+                    <div class="mb-4">
+                        <label class="border-2 border-dashed border-gray-300 hover:border-monday-blue rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition bg-gray-50 hover:bg-blue-50/30">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-monday-blue mb-1"></i>
+                            <span class="text-sm font-medium text-gray-600">לחץ להעלאת קבצים או תמונות</span>
+                            <span class="text-xs text-gray-400 mt-1">תמונות, מסמכים או קובצי טקסט</span>
+                            <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="hidden" multiple>
+                        </label>
+                    </div>
+
+                    <div id="attachmentsGrid" class="grid grid-cols-2 gap-3">
+                        <!-- Dynamic Attachments -->
+                    </div>
+                </div>
+
+                <hr class="border-gray-200">
+
+                <!-- External Links Section -->
+                <div>
+                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-link text-monday-blue"></i> קישורים חיצוניים
+                    </h3>
+
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="linkTitleInput" placeholder="תיאור הקישור (למשל: מסמך אפיון)" class="w-1/3 p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
+                        <input type="url" id="linkUrlInput" placeholder="https://example.com" class="flex-1 p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
+                        <button onclick="addExternalLink()" class="bg-gray-800 hover:bg-black text-white px-4 rounded-xl text-sm font-medium shadow">
+                            הוסף
+                        </button>
+                    </div>
+
+                    <div id="linksList" class="space-y-2">
+                        <!-- Dynamic Links -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500">
+                <span>מזהה משימה: <span id="modalTaskIdDisplay"></span></span>
+                <button onclick="closeTaskModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial Default State
+        const DEFAULT_DATA = [
+            {
+                id: 'group-1',
+                title: 'פרויקטים בעבודה',
+                color: '#0073ea', // Monday Blue
+                tasks: [
+                    {
+                        id: 'task-101',
+                        title: 'עיצוב דף הבית החדש',
+                        status: 'בעבודה',
+                        dueDate: '2026-10-15',
+                        priority: 'גבוהה',
+                        comments: [
+                            { id: 'c1', text: 'סיימנו את ה-Wireframes הראשיים.', date: '08/10/2026 10:30' }
+                        ],
+                        attachments: [],
+                        links: [
+                            { id: 'l1', title: 'סקיצה ב-Figma', url: 'https://figma.com' }
+                        ]
+                    },
+                    {
+                        id: 'task-102',
+                        title: 'אינטגרציה לשרת התשלומים',
+                        status: 'טרם התחיל',
+                        dueDate: '2026-10-20',
+                        priority: 'דחוף',
+                        comments: [],
+                        attachments: [],
+                        links: []
+                    }
+                ]
+            },
+            {
+                id: 'group-2',
+                title: 'משימות שוטפות',
+                color: '#00c875', // Monday Green
+                tasks: [
+                    {
+                        id: 'task-201',
+                        title: 'סנכרון שבועי עם הצוות',
+                        status: 'בוצע',
+                        dueDate: '2026-10-08',
+                        priority: 'בינונית',
+                        comments: [{ id: 'c2', text: 'כל הצוות השתתף בישיבה.', date: '08/10/2026 09:00' }],
+                        attachments: [],
+                        links: []
+                    }
+                ]
+            }
+        ];
+
+        let boardData = [];
+        let activeTaskId = null;
+
+        // Colors palette for Groups
+        const GROUP_COLORS = [
+            '#0073ea', // Blue
+            '#00c875', // Green
+            '#a25ddc', // Purple
+            '#fdab3d', // Orange
+            '#e2445c', // Red
+            '#ffcc00', // Yellow
+            '#579bfc'  // Light Blue
+        ];
+
+        // Status configurations
+        const STATUS_CONFIG = {
+            'בוצע': { bg: 'bg-[#00c875]', text: 'text-white' },
+            'בעבודה': { bg: 'bg-[#fdab3d]', text: 'text-white' },
+            'נעצר': { bg: 'bg-[#e2445c]', text: 'text-white' },
+            'טרם התחיל': { bg: 'bg-[#c4c4c4]', text: 'text-white' }
+        };
+
+        // Priority configurations
+        const PRIORITY_CONFIG = {
+            'דחוף': 'bg-red-100 text-red-700 border-red-300',
+            'גבוהה': 'bg-orange-100 text-orange-700 border-orange-300',
+            'בינונית': 'bg-blue-100 text-blue-700 border-blue-300',
+            'נמוכה': 'bg-gray-100 text-gray-700 border-gray-300'
+        };
+
+        window.onload = function() {
+            loadData();
+            renderBoard();
+        };
+
+        function loadData() {
+            const saved = localStorage.getItem('taskday_board_data');
+            if (saved) {
+                try {
+                    boardData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse storage', e);
+                    boardData = DEFAULT_DATA;
+                }
+            } else {
+                boardData = DEFAULT_DATA;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('taskday_board_data', JSON.stringify(boardData));
+            renderStats();
+        }
+
+        function renderBoard() {
+            const container = document.getElementById('groupsContainer');
+            container.innerHTML = '';
+
+            if (boardData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
+                        <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500 font-medium">אין קבוצות משימות כרגע</p>
+                        <button onclick="addNewGroup()" class="mt-3 text-monday-blue font-semibold hover:underline">+ לחץ כאן להוספת קבוצה</button>
+                    </div>
+                `;
+                renderStats();
+                return;
+            }
+
+            boardData.forEach((group, groupIndex) => {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200';
+
+                // Color picker options html
+                const colorOptionsHtml = GROUP_COLORS.map(c => `
+                    <button onclick="changeGroupColor('${group.id}', '${c}')" class="w-5 h-5 rounded-full border border-white shadow-sm hover:scale-110 transition" style="background-color: ${c}"></button>
+                `).join('');
+
+                groupEl.innerHTML = `
+                    <!-- Group Header -->
+                    <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
+                        <div class="flex items-center space-x-3 space-x-reverse flex-1">
+                            <div class="w-3.5 h-8 rounded-r-md" style="background-color: ${group.color}"></div>
+                            
+                            <!-- Group Title Inline Edit -->
+                            <input type="text" value="${escapeHtml(group.title)}" 
+                                onchange="updateGroupTitle('${group.id}', this.value)"
+                                class="font-bold text-lg text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:bg-white focus:outline-none px-2 py-0.5 rounded transition"
+                                style="color: ${group.color}">
+
+                            <span class="text-xs bg-gray-200/70 text-gray-600 px-2.5 py-0.5 rounded-full font-semibold">
+                                ${group.tasks.length} משימות
+                            </span>
+                        </div>
+
+                        <!-- Group Controls -->
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <!-- Color Selector Dropdown / Row -->
+                            <div class="hidden sm:flex items-center space-x-1 space-x-reverse bg-gray-100 p-1 rounded-lg">
+                                ${colorOptionsHtml}
+                            </div>
+
+                            <button onclick="addNewTask('${group.id}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <i class="fa-solid fa-plus text-monday-blue"></i> הוסף משימה
+                            </button>
+
+                            <button onclick="deleteGroup('${group.id}')" class="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition" title="מחק קבוצה">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse min-w-[750px]">
+                            <thead>
+                                <tr class="text-xs text-gray-400 border-b border-gray-200 bg-gray-50/30 uppercase tracking-wider">
+                                    <th class="py-2.5 px-4 w-12 text-center">סדר</th>
+                                    <th class="py-2.5 px-4">שם המשימה</th>
+                                    <th class="py-2.5 px-4 w-36 text-center">סטטוס</th>
+                                    <th class="py-2.5 px-4 w-36 text-center">תאריך יעד</th>
+                                    <th class="py-2.5 px-4 w-28 text-center">עדיפות</th>
+                                    <th class="py-2.5 px-4 w-24 text-center">מדיה/תגובות</th>
+                                    <th class="py-2.5 px-4 w-16 text-center">פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${group.tasks.length === 0 ? `
+                                    <tr>
+                                        <td colspan="7" class="text-center py-6 text-gray-400 text-sm">
+                                            אין משימות בקבוצה זו. <button onclick="addNewTask('${group.id}')" class="text-monday-blue font-semibold underline">הוסף משימה ראשונה</button>
+                                        </td>
+                                    </tr>
+                                ` : group.tasks.map((task, taskIndex) => renderTaskRow(group, task, taskIndex)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.appendChild(groupEl);
+            });
+
+            renderStats();
+        }
+
+        function renderTaskRow(group, task, index) {
+            const statusStyle = STATUS_CONFIG[task.status] || STATUS_CONFIG['טרם התחיל'];
+            const priorityStyle = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG['בינונית'];
+
+            const attachmentsCount = (task.attachments ? task.attachments.length : 0) + (task.links ? task.links.length : 0);
+            const commentsCount = task.comments ? task.comments.length : 0;
+
+            return `
+                <tr class="task-row transition-colors group">
+                    <!-- Reorder Controls -->
+                    <td class="py-3 px-2 text-center">
+                        <div class="flex flex-col items-center justify-center opacity-40 group-hover:opacity-100 transition">
+                            <button onclick="moveTask('${group.id}', ${index}, -1)" ${index === 0 ? 'disabled class="text-gray-300"' : 'class="hover:text-monday-blue"'}>
+                                <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                            </button>
+                            <button onclick="moveTask('${group.id}', ${index}, 1)" ${index === group.tasks.length - 1 ? 'disabled class="text-gray-300"' : 'class="hover:text-monday-blue"'}>
+                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
+
+                    <!-- Task Title (Editable) -->
+                    <td class="py-3 px-4">
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <input type="text" value="${escapeHtml(task.title)}" 
+                                onchange="updateTaskTitle('${group.id}', '${task.id}', this.value)"
+                                class="w-full text-gray-800 font-medium bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:outline-none px-1 py-0.5 rounded transition">
+                            <button onclick="openTaskModal('${task.id}')" class="text-gray-400 hover:text-monday-blue opacity-0 group-hover:opacity-100 transition p-1" title="פתח פרטים מלאים">
+                                <i class="fa-solid fa-expand text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+
+                    <!-- Status Cell -->
+                    <td class="py-3 px-2 text-center">
+                        <select onchange="updateTaskStatus('${group.id}', '${task.id}', this.value)" 
+                            class="${statusStyle.bg} ${statusStyle.text} font-semibold text-xs py-1.5 px-3 rounded-md border-0 cursor-pointer shadow-sm focus:outline-none text-center w-full appearance-none transition">
+                            <option value="בוצע" ${task.status === 'בוצע' ? 'selected' : ''}>🟢 בוצע</option>
+                            <option value="בעבודה" ${task.status === 'בעבודה' ? 'selected' : ''}>🟠 בעבודה</option>
+                            <option value="נעצר" ${task.status === 'נעצר' ? 'selected' : ''}>🔴 נעצר</option>
+                            <option value="טרם התחיל" ${task.status === 'טרם התחיל' ? 'selected' : ''}>⚪ טרם התחיל</option>
+                        </select>
+                    </td>
+
+                    <!-- Due Date -->
+                    <td class="py-3 px-2 text-center">
+                        <input type="date" value="${task.dueDate || ''}" 
+                            onchange="updateTaskDueDate('${group.id}', '${task.id}', this.value)"
+                            class="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-2 py-1 focus:ring-1 focus:ring-monday-blue outline-none w-full text-center">
+                    </td>
+
+                    <!-- Priority Badge -->
+                    <td class="py-3 px-2 text-center">
+                        <select onchange="updateTaskPriority('${group.id}', '${task.id}', this.value)"
+                            class="text-xs font-semibold px-2 py-1 rounded-md border ${priorityStyle} cursor-pointer outline-none w-full text-center">
+                            <option value="דחוף" ${task.priority === 'דחוף' ? 'selected' : ''}>🔥 דחוף</option>
+                            <option value="גבוהה" ${task.priority === 'גבוהה' ? 'selected' : ''}>⚡ גבוהה</option>
+                            <option value="בינונית" ${task.priority === 'בינונית' ? 'selected' : ''}>🔷 בינונית</option>
+                            <option value="נמוכה" ${task.priority === 'נמוכה' ? 'selected' : ''}>🔹 נמוכה</option>
+                        </select>
+                    </td>
+
+                    <!-- Attachments / Comments Badges -->
+                    <td class="py-3 px-2 text-center">
+                        <div class="flex items-center justify-center space-x-2 space-x-reverse cursor-pointer" onclick="openTaskModal('${task.id}')">
+                            <span class="text-xs font-medium ${commentsCount > 0 ? 'text-monday-blue bg-blue-50' : 'text-gray-400'} px-2 py-0.5 rounded-full border border-gray-200 flex items-center gap-1">
+                                <i class="fa-regular fa-comment"></i> ${commentsCount}
+                            </span>
+                            <span class="text-xs font-medium ${attachmentsCount > 0 ? 'text-purple-600 bg-purple-50' : 'text-gray-400'} px-2 py-0.5 rounded-full border border-gray-200 flex items-center gap-1">
+                                <i class="fa-solid fa-paperclip"></i> ${attachmentsCount}
+                            </span>
+                        </div>
+                    </td>
+
+                    <!-- Delete Button -->
+                    <td class="py-3 px-2 text-center">
+                        <button onclick="deleteTask('${group.id}', '${task.id}')" class="text-gray-300 hover:text-red-500 transition p-1" title="מחק משימה">
+                            <i class="fa-regular fa-trash-can text-sm"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function addNewGroup() {
+            const newGroup = {
+                id: 'group-' + Date.now(),
+                title: 'קטגוריה חדשה',
+                color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
+                tasks: []
+            };
+            boardData.push(newGroup);
+            saveData();
+            renderBoard();
+        }
+
+        function updateGroupTitle(groupId, newTitle) {
+            const group = boardData.find(g => g.id === groupId);
+            if (group) {
+                group.title = newTitle.trim() || 'קטגוריה ללא שם';
+                saveData();
+            }
+        }
+
+        function changeGroupColor(groupId, color) {
+            const group = boardData.find(g => g.id === groupId);
+            if (group) {
+                group.color = color;
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function deleteGroup(groupId) {
+            if (confirm('האם אתה בטוח שברצונך למחוק קבוצה זו וכל משימותיה?')) {
+                boardData = boardData.filter(g => g.id !== groupId);
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function addNewTask(groupId) {
+            const group = boardData.find(g => g.id === groupId);
+            if (group) {
+                const newTask = {
+                    id: 'task-' + Date.now(),
+                    title: 'משימה חדשה',
+                    status: 'טרם התחיל',
+                    dueDate: new Date().toISOString().split('T')[0],
+                    priority: 'בינונית',
+                    comments: [],
+                    attachments: [],
+                    links: []
+                };
+                group.tasks.push(newTask);
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function deleteTask(groupId, taskId) {
+            const group = boardData.find(g => g.id === groupId);
+            if (group) {
+                group.tasks = group.tasks.filter(t => t.id !== taskId);
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function updateTaskTitle(groupId, taskId, title) {
+            const task = findTask(taskId);
+            if (task) {
+                task.title = title;
+                saveData();
+            }
+        }
+
+        function updateTaskStatus(groupId, taskId, status) {
+            const task = findTask(taskId);
+            if (task) {
+                task.status = status;
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function updateTaskDueDate(groupId, taskId, date) {
+            const task = findTask(taskId);
+            if (task) {
+                task.dueDate = date;
+                saveData();
+            }
+        }
+
+        function updateTaskPriority(groupId, taskId, priority) {
+            const task = findTask(taskId);
+            if (task) {
+                task.priority = priority;
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function moveTask(groupId, currentIndex, direction) {
+            const group = boardData.find(g => g.id === groupId);
+            if (!group) return;
+
+            const newIndex = currentIndex + direction;
+            if (newIndex < 0 || newIndex >= group.tasks.length) return;
+
+            // Swap items
+            const temp = group.tasks[currentIndex];
+            group.tasks[currentIndex] = group.tasks[newIndex];
+            group.tasks[newIndex] = temp;
+
+            saveData();
+            renderBoard();
+        }
+
+        function findTask(taskId) {
+            for (let group of boardData) {
+                const task = group.tasks.find(t => t.id === taskId);
+                if (task) return task;
+            }
+            return null;
+        }
+
+        function findTaskGroup(taskId) {
+            for (let group of boardData) {
+                const task = group.tasks.find(t => t.id === taskId);
+                if (task) return group;
+            }
+            return null;
+        }
+
+        function openTaskModal(taskId) {
+            activeTaskId = taskId;
+            const task = findTask(taskId);
+            const group = findTaskGroup(taskId);
+            if (!task || !group) return;
+
+            document.getElementById('modalTaskTitle').value = task.title;
+            document.getElementById('modalTaskIdDisplay').innerText = task.id;
+            
+            const groupBadge = document.getElementById('modalGroupBadge');
+            groupBadge.innerText = group.title;
+            groupBadge.style.backgroundColor = group.color;
+
+            document.getElementById('modalStatusSelect').value = task.status;
+            document.getElementById('modalPrioritySelect').value = task.priority;
+
+            renderModalComments(task);
+            renderModalAttachments(task);
+            renderModalLinks(task);
+
+            const modal = document.getElementById('taskModal');
+            const panel = document.getElementById('modalPanel');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                panel.classList.remove('translate-x-full');
+            }, 10);
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('taskModal');
+            const panel = document.getElementById('modalPanel');
+            panel.classList.add('translate-x-full');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeTaskId = null;
+                renderBoard();
+            }, 300);
+        }
+
+        function updateTaskFromModal() {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId);
+            if (!task) return;
+
+            task.title = document.getElementById('modalTaskTitle').value;
+            task.status = document.getElementById('modalStatusSelect').value;
+            task.priority = document.getElementById('modalPrioritySelect').value;
+
+            saveData();
+        }
+
+        // Comments Management
+        function addComment() {
+            if (!activeTaskId) return;
+            const input = document.getElementById('newCommentInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const task = findTask(activeTaskId);
+            if (task) {
+                if (!task.comments) task.comments = [];
+                const now = new Date();
+                const formattedDate = `${now.toLocaleDateString('he-IL')} ${now.toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'})}`;
+                
+                task.comments.unshift({
+                    id: 'c-' + Date.now(),
+                    text: text,
+                    date: formattedDate
+                });
+
+                input.value = '';
+                saveData();
+                renderModalComments(task);
+            }
+        }
+
+        function deleteComment(commentId) {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId);
+            if (task && task.comments) {
+                task.comments = task.comments.filter(c => c.id !== commentId);
+                saveData();
+                renderModalComments(task);
+            }
+        }
+
+        function renderModalComments(task) {
+            const container = document.getElementById('commentsList');
+            if (!task.comments || task.comments.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">אין תגובות עדיין.</p>`;
+                return;
+            }
+
+            container.innerHTML = task.comments.map(c => `
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(c.text)}</p>
+                        <span class="text-[10px] text-gray-400 mt-1 block">${c.date}</span>
+                    </div>
+                    <button onclick="deleteComment('${c.id}')" class="text-gray-300 hover:text-red-500 p-1">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // File Attachments Management
+        function handleFileUpload(event) {
+            if (!activeTaskId) return;
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const task = findTask(activeTaskId);
+            if (!task) return;
+
+            if (!task.attachments) task.attachments = [];
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    task.attachments.push({
+                        id: 'att-' + Date.now() + Math.random(),
+                        name: file.name,
+                        type: file.type,
+                        size: (file.size / 1024).toFixed(1) + ' KB',
+                        data: e.target.result
+                    });
+                    saveData();
+                    renderModalAttachments(task);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function deleteAttachment(attId) {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId);
+            if (task && task.attachments) {
+                task.attachments = task.attachments.filter(a => a.id !== attId);
+                saveData();
+                renderModalAttachments(task);
+            }
+        }
+
+        function renderModalAttachments(task) {
+            const container = document.getElementById('attachmentsGrid');
+            if (!task.attachments || task.attachments.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic col-span-2">אין קבצים מצורפים.</p>`;
+                return;
+            }
+
+            container.innerHTML = task.attachments.map(att => {
+                const isImage = att.type.startsWith('image/');
+                return `
+                    <div class="border border-gray-200 rounded-xl p-2.5 bg-white flex items-center justify-between shadow-sm relative group overflow-hidden">
+                        <div class="flex items-center space-x-3 space-x-reverse overflow-hidden">
+                            ${isImage ? `
+                                <img src="${att.data}" class="w-10 h-10 object-cover rounded-lg border">
+                            ` : `
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 text-monday-blue flex items-center justify-center font-bold text-xs">
+                                    <i class="fa-solid fa-file text-base"></i>
+                                </div>
+                            `}
+                            <div class="truncate">
+                                <p class="text-xs font-semibold text-gray-700 truncate" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</p>
+                                <span class="text-[10px] text-gray-400">${att.size}</span>
+                            </div>
+                        </div>
+                        <button onclick="deleteAttachment('${att.id}')" class="text-gray-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Links Management
+        function addExternalLink() {
+            if (!activeTaskId) return;
+            const titleInput = document.getElementById('linkTitleInput');
+            const urlInput = document.getElementById('linkUrlInput');
+
+            const title = titleInput.value.trim() || 'קישור חיצוני';
+            let url = urlInput.value.trim();
+
+            if (!url) return;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            const task = findTask(activeTaskId);
+            if (task) {
+                if (!task.links) task.links = [];
+                task.links.push({
+                    id: 'link-' + Date.now(),
+                    title: title,
+                    url: url
+                });
+
+                titleInput.value = '';
+                urlInput.value = '';
+                saveData();
+                renderModalLinks(task);
+            }
+        }
+
+        function deleteLink(linkId) {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId);
+            if (task && task.links) {
+                task.links = task.links.filter(l => l.id !== linkId);
+                saveData();
+                renderModalLinks(task);
+            }
+        }
+
+        function renderModalLinks(task) {
+            const container = document.getElementById('linksList');
+            if (!task.links || task.links.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">אין קישורים מצורפים.</p>`;
+                return;
+            }
+
+            container.innerHTML = task.links.map(l => `
+                <div class="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-xs">
+                    <a href="${l.url}" target="_blank" class="text-monday-blue font-semibold hover:underline flex items-center gap-2 truncate">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        <span>${escapeHtml(l.title)}</span>
+                    </a>
+                    <button onclick="deleteLink('${l.id}')" class="text-gray-300 hover:text-red-500 p-1">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderStats() {
+            let total = 0;
+            let done = 0;
+            let inProgress = 0;
+
+            boardData.forEach(g => {
+                g.tasks.forEach(t => {
+                    total++;
+                    if (t.status === 'בוצע') done++;
+                    if (t.status === 'בעבודה') inProgress++;
+                });
+            });
+
+            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-500">סה"כ משימות:</span>
+                    <span class="font-bold text-gray-800">${total}</span>
+                </div>
+                <div class="h-4 w-px bg-gray-200"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-500">בוצעו:</span>
+                    <span class="font-bold text-green-600">${done}</span>
+                </div>
+                <div class="h-4 w-px bg-gray-200"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-500">בתהליך:</span>
+                    <span class="font-bold text-orange-500">${inProgress}</span>
+                </div>
+                <div class="h-4 w-px bg-gray-200"></div>
+                <div class="flex items-center gap-1">
+                    <div class="w-16 bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div class="bg-monday-green h-full rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                    <span class="text-xs font-bold text-gray-600">${percent}%</span>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
