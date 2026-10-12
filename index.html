@@ -1,265 +1,408 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" class="text-base">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת ניהול משימות - Monday Style</title>
+    <title>מערכת ניהול משימות נגישה - TaskDay (Monday Style)</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Rubik -->
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts Rubik & Assistant -->
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Rubik', 'sans-serif'],
+                        sans: ['Rubik', 'Assistant', 'sans-serif'],
+                        readable: ['Assistant', 'Arial', 'sans-serif']
                     },
                     colors: {
                         monday: {
-                            blue: '#0073ea',
-                            green: '#00c875',
-                            red: '#e2445c',
-                            orange: '#fdab3d',
-                            yellow: '#ffcc00',
-                            purple: '#a25ddc',
-                            darkPurple: '#784bd1',
-                            grey: '#c4c4c4',
-                            dark: '#323338'
+                            blue: '#005bb5',      // High contrast accessible blue
+                            green: '#008a4c',     // High contrast accessible green
+                            red: '#c02b3e',       // High contrast accessible red
+                            orange: '#c86800',    // High contrast accessible orange
+                            purple: '#6d30a8',    // High contrast accessible purple
+                            dark: '#1e1f23'
                         }
                     }
                 }
             }
         }
     </script>
+
     <style>
         body {
             font-family: 'Rubik', sans-serif;
             background-color: #f6f7fb;
-            color: #323338;
+            color: #1e1f23;
+            transition: font-size 0.2s ease, background-color 0.2s ease, color 0.2s ease;
         }
-        /* Custom scrollbar */
+
+        /* Multiline formatting fix for comments and descriptions */
+        .whitespace-pre-wrap-custom {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Visible Focus Ring for Accessibility */
+        *:focus-visible {
+            outline: 3px solid #005bb5 !important;
+            outline-offset: 2px !important;
+            box-shadow: 0 0 0 4px rgba(0, 91, 181, 0.25) !important;
+        }
+
+        /* Skip to content link */
+        .skip-link {
+            position: absolute;
+            top: -50px;
+            right: 10px;
+            background: #005bb5;
+            color: white;
+            padding: 8px 16px;
+            z-index: 100;
+            border-radius: 0 0 8px 8px;
+            transition: top 0.2s ease;
+            font-weight: bold;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* High Contrast Mode Styles */
+        body.high-contrast {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        body.high-contrast * {
+            background-color: #000000 !important;
+            color: #ffff00 !important;
+            border-color: #ffff00 !important;
+        }
+        body.high-contrast input, body.high-contrast select, body.high-contrast button, body.high-contrast textarea {
+            background-color: #111111 !important;
+            color: #ffffff !important;
+            border: 2px solid #ffff00 !important;
+        }
+
+        /* Monochrome Mode */
+        body.monochrome {
+            filter: grayscale(100%);
+        }
+
+        /* Inverted Mode */
+        body.invert-colors {
+            filter: invert(100%) hue-rotate(180deg);
+            background-color: #0a0a0a;
+        }
+
+        /* Highlight Links */
+        body.highlight-links a, body.highlight-links button {
+            text-decoration: underline !important;
+            font-weight: bold !important;
+        }
+
+        /* Readable Font Mode */
+        body.readable-font, body.readable-font * {
+            font-family: 'Assistant', 'Arial', sans-serif !important;
+            letter-spacing: 0.03em !important;
+        }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #e2e8f0;
         }
         ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #64748b;
             border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        .badge-shadow {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        }
-        .task-row:hover {
-            background-color: #f8fafc;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased">
 
-    <!-- Top Header Navigation -->
-    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+    <!-- Skip to Content for Keyboard Users -->
+    <a href="#main-content" class="skip-link">דלג לתוכן המרכזי</a>
+
+    <!-- Live Region for Screen Reader Announcements -->
+    <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-gray-300 px-4 md:px-8 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm" role="banner">
         <div class="flex items-center space-x-4 space-x-reverse">
-            <div class="flex items-center space-x-2 space-x-reverse text-monday-blue font-bold text-2xl">
-                <i class="fa-solid fa-square-poll-vertical text-3xl"></i>
+            <div class="flex items-center space-x-2 space-x-reverse text-monday-blue font-extrabold text-2xl">
+                <i class="fa-solid fa-square-poll-vertical text-3xl" aria-hidden="true"></i>
                 <span>TaskDay</span>
             </div>
-            <span class="text-xs bg-blue-100 text-monday-blue font-semibold px-2.5 py-1 rounded-full">סגנון Monday</span>
+            <span class="text-xs bg-blue-100 text-monday-blue font-bold px-3 py-1 rounded-full border border-blue-200">
+                סגנון Monday | נגיש
+            </span>
         </div>
 
         <div class="flex items-center space-x-3 space-x-reverse">
-            <button onclick="addNewGroup()" class="bg-monday-blue hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center shadow-md">
-                <i class="fa-solid fa-plus ml-2"></i> הוסף קבוצה חדשה
+            <!-- Accessibility Menu Toggle Trigger -->
+            <button onclick="toggleAccessibilityMenu()" 
+                    aria-expanded="false" 
+                    aria-controls="accessibilityMenu" 
+                    id="accTriggerBtn"
+                    class="bg-purple-700 hover:bg-purple-800 text-white font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-universal-access text-lg" aria-hidden="true"></i>
+                <span class="hidden sm:inline">נגישות</span>
+            </button>
+
+            <button onclick="addNewGroup()" 
+                    aria-label="הוסף קבוצת משימות חדשה"
+                    class="bg-monday-blue hover:bg-blue-800 text-white font-bold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <span>הוסף קבוצה</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Board Area -->
-    <main class="flex-1 p-4 md:p-8 max-w-[1600px] w-full mx-auto">
-        <!-- Board Header -->
+    <!-- Floating Accessibility Menu -->
+    <div id="accessibilityMenu" 
+         role="dialog" 
+         aria-labelledby="accMenuTitle" 
+         class="hidden fixed top-16 left-4 z-50 bg-white border-2 border-purple-700 shadow-2xl rounded-2xl w-80 p-5 space-y-4">
+        
+        <div class="flex justify-between items-center border-b pb-2 border-gray-200">
+            <h2 id="accMenuTitle" class="font-bold text-gray-900 text-lg flex items-center gap-2">
+                <i class="fa-solid fa-universal-access text-purple-700" aria-hidden="true"></i>
+                תפריט נגישות
+            </h2>
+            <button onclick="toggleAccessibilityMenu()" aria-label="סגור תפריט נגישות" class="text-gray-500 hover:text-black p-1">
+                <i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <!-- Font Size Controls -->
+        <div class="space-y-1">
+            <label class="text-xs font-bold text-gray-700 block">גודל טקסט</label>
+            <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="adjustFontSize(1)" class="bg-gray-100 hover:bg-gray-200 font-bold py-1.5 px-2 rounded text-xs border border-gray-300">א+ הגדל</button>
+                <button onclick="adjustFontSize(-1)" class="bg-gray-100 hover:bg-gray-200 font-bold py-1.5 px-2 rounded text-xs border border-gray-300">א- הקטן</button>
+                <button onclick="resetFontSize()" class="bg-gray-100 hover:bg-gray-200 font-bold py-1.5 px-2 rounded text-xs border border-gray-300">איפוס</button>
+            </div>
+        </div>
+
+        <!-- Visual Contrast Toggles -->
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-gray-700 block">תצוגה וצבעים</label>
+            <button onclick="toggleAccMode('high-contrast')" class="w-full text-right bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 font-semibold text-xs flex justify-between items-center">
+                <span><i class="fa-solid fa-circle-half-stroke ml-2 text-yellow-600"></i>ניגודיות גבוהה</span>
+                <span id="badge-high-contrast" class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">כבוי</span>
+            </button>
+            <button onclick="toggleAccMode('monochrome')" class="w-full text-right bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 font-semibold text-xs flex justify-between items-center">
+                <span><i class="fa-solid fa-palette ml-2 text-gray-600"></i>גווני אפור</span>
+                <span id="badge-monochrome" class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">כבוי</span>
+            </button>
+            <button onclick="toggleAccMode('invert-colors')" class="w-full text-right bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 font-semibold text-xs flex justify-between items-center">
+                <span><i class="fa-solid fa-eye ml-2 text-blue-600"></i>היפוך צבעים</span>
+                <span id="badge-invert-colors" class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">כבוי</span>
+            </button>
+            <button onclick="toggleAccMode('highlight-links')" class="w-full text-right bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 font-semibold text-xs flex justify-between items-center">
+                <span><i class="fa-solid fa-link ml-2 text-indigo-600"></i>הדגשת קישורים</span>
+                <span id="badge-highlight-links" class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">כבוי</span>
+            </button>
+            <button onclick="toggleAccMode('readable-font')" class="w-full text-right bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 font-semibold text-xs flex justify-between items-center">
+                <span><i class="fa-solid fa-font ml-2 text-teal-600"></i>פונט קריא מותאם</span>
+                <span id="badge-readable-font" class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">כבוי</span>
+            </button>
+        </div>
+
+        <button onclick="resetAllAccessibility()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2 rounded-lg text-xs border border-red-200 mt-2">
+            איפוס כל הגדרות הנגישות
+        </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 p-4 md:p-8 max-w-[1600px] w-full mx-auto" role="main">
         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-monday-blue"></i>
-                    לוח משימות ראשי
+                <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-monday-blue" aria-hidden="true"></i>
+                    לוח ניהול משימות
                 </h1>
-                <p class="text-gray-500 text-sm mt-1">נהל את הקטגוריות, המשימות והמדיה שלך במקום אחד בצורה נוחה</p>
+                <p class="text-gray-700 text-sm mt-1">ארגון משימות, קטגוריות, קבצים ותגובות מסודרות בשורות</p>
             </div>
 
-            <!-- Stats Bar -->
-            <div id="statsContainer" class="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm text-sm">
-                <!-- Dynamic Stats -->
+            <div id="statsContainer" class="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-gray-300 shadow-sm text-sm">
+                <!-- Stats injected dynamically -->
             </div>
         </div>
 
         <!-- Groups Container -->
-        <div id="groupsContainer" class="space-y-8">
-            <!-- Dynamic Groups will be injected here -->
+        <div id="groupsContainer" class="space-y-8" role="region" aria-label="קבוצות משימות">
+            <!-- Dynamic Groups -->
         </div>
     </main>
 
-    <!-- Task Detail Drawer / Modal -->
-    <div id="taskModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex justify-end transition-opacity duration-300">
-        <div class="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="modalPanel">
+    <!-- Task Details Drawer / Modal -->
+    <div id="taskModal" 
+         role="dialog" 
+         aria-modal="true" 
+         aria-labelledby="modalTaskTitle"
+         class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex justify-end transition-opacity duration-200">
+        
+        <div class="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col transform transition-transform duration-200 translate-x-full" id="modalPanel">
             <!-- Modal Header -->
-            <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-                <div class="flex items-center space-x-3 space-x-reverse">
-                    <span id="modalGroupBadge" class="px-3 py-1 rounded-full text-xs font-semibold text-white"></span>
-                    <input type="text" id="modalTaskTitle" onchange="updateTaskFromModal()" class="text-xl font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:outline-none px-1 py-0.5 rounded">
+            <div class="p-5 border-b border-gray-300 flex items-center justify-between bg-gray-50">
+                <div class="flex items-center space-x-3 space-x-reverse flex-1">
+                    <span id="modalGroupBadge" class="px-3 py-1 rounded-full text-xs font-extrabold text-white"></span>
+                    <input type="text" id="modalTaskTitle" 
+                           onchange="updateTaskFromModal()" 
+                           aria-label="שם המשימה"
+                           class="text-xl font-bold text-gray-900 bg-white border border-gray-300 focus:border-monday-blue px-2 py-1 rounded w-full max-w-md">
                 </div>
-                <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-200 transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+                <button onclick="closeTaskModal()" aria-label="סגור חלונית פרטי משימה" class="text-gray-600 hover:text-black p-2 rounded-lg hover:bg-gray-200">
+                    <i class="fa-solid fa-xmark text-2xl" aria-hidden="true"></i>
                 </button>
             </div>
 
-            <!-- Modal Content Tabs & Body -->
+            <!-- Modal Body -->
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <!-- Status & Priority Quick Select -->
-                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <!-- Status & Priority Selectors -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-300">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">סטטוס</label>
-                        <select id="modalStatusSelect" onchange="updateTaskFromModal()" class="w-full p-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-monday-blue outline-none">
-                            <option value="בוצע">🟢 בוצע</option>
-                            <option value="בעבודה">🟠 בעבודה</option>
-                            <option value="נעצר">🔴 נעצר</option>
+                        <label for="modalStatusSelect" class="block text-xs font-bold text-gray-800 mb-1">סטטוס משימה</label>
+                        <select id="modalStatusSelect" onchange="updateTaskFromModal()" class="w-full p-2.5 border border-gray-400 rounded-lg text-sm font-bold bg-white focus:ring-2 focus:ring-monday-blue">
+                            <option value="בוצע">🟢 בוצע (הושלם)</option>
+                            <option value="בעבודה">🟠 בעבודה (בתהליך)</option>
+                            <option value="נעצר">🔴 נעצר (מושהה)</option>
                             <option value="טרם התחיל">⚪ טרם התחיל</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">עדיפות</label>
-                        <select id="modalPrioritySelect" onchange="updateTaskFromModal()" class="w-full p-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-monday-blue outline-none">
+                        <label for="modalPrioritySelect" class="block text-xs font-bold text-gray-800 mb-1">רמת עדיפות</label>
+                        <select id="modalPrioritySelect" onchange="updateTaskFromModal()" class="w-full p-2.5 border border-gray-400 rounded-lg text-sm font-bold bg-white focus:ring-2 focus:ring-monday-blue">
                             <option value="דחוף">🔥 דחוף ביותר</option>
-                            <option value="גבוהה">⚡ גבוהה</option>
-                            <option value="בינונית">🔷 בינונית</option>
-                            <option value="נמוכה">🔹 נמוכה</option>
+                            <option value="גבוהה">⚡ עדיפות גבוהה</option>
+                            <option value="בינונית">🔷 עדיפות בינונית</option>
+                            <option value="נמוכה">🔹 עדיפות נמוכה</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Comments & Notes Section -->
-                <div>
-                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
-                        <i class="fa-regular fa-comments text-monday-blue"></i> תגובות והערות
+                <!-- Comments & Notes Section (Fixed Multiline Support) -->
+                <section aria-labelledby="commentsHeading">
+                    <h3 id="commentsHeading" class="font-bold text-gray-900 text-base mb-3 flex items-center gap-2">
+                        <i class="fa-regular fa-comments text-monday-blue" aria-hidden="true"></i>
+                        <span>תגובות והערות (תומך בשורות מרובות)</span>
                     </h3>
                     
-                    <div class="flex gap-2 mb-4">
-                        <textarea id="newCommentInput" rows="2" placeholder="רשום תגובה או הערה חדשה..." class="w-full p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue focus:outline-none resize-none"></textarea>
-                        <button onclick="addComment()" class="bg-monday-blue hover:bg-blue-600 text-white px-4 rounded-xl text-sm font-medium self-end py-3 flex items-center gap-1 shadow">
-                            <i class="fa-solid fa-paper-plane"></i>
+                    <div class="flex flex-col gap-2 mb-4">
+                        <label for="newCommentInput" class="sr-only">רשום תגובה חדשה</label>
+                        <textarea id="newCommentInput" rows="3" placeholder="רשום תגובה או הערה חדשה... (לחץ Enter לירידת שורה)" class="w-full p-3 border border-gray-400 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue focus:outline-none resize-y"></textarea>
+                        <button onclick="addComment()" aria-label="שלח תגובה" class="bg-monday-blue hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold self-end flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                            <span>שלח תגובה</span>
                         </button>
                     </div>
 
-                    <div id="commentsList" class="space-y-2">
+                    <div id="commentsList" class="space-y-3" role="region" aria-label="רשימת תגובות">
                         <!-- Dynamic Comments -->
                     </div>
-                </div>
+                </section>
 
-                <hr class="border-gray-200">
+                <hr class="border-gray-300">
 
-                <!-- Media & File Attachments Section -->
-                <div>
-                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-paperclip text-monday-blue"></i> קבצים ותמונות מצורפות
+                <!-- Media & Attachments Section -->
+                <section aria-labelledby="filesHeading">
+                    <h3 id="filesHeading" class="font-bold text-gray-900 text-base mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-paperclip text-monday-blue" aria-hidden="true"></i>
+                        <span>קבצים ותמונות מצורפות</span>
                     </h3>
 
                     <div class="mb-4">
-                        <label class="border-2 border-dashed border-gray-300 hover:border-monday-blue rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition bg-gray-50 hover:bg-blue-50/30">
-                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-monday-blue mb-1"></i>
-                            <span class="text-sm font-medium text-gray-600">לחץ להעלאת קבצים או תמונות</span>
-                            <span class="text-xs text-gray-400 mt-1">תמונות, מסמכים או קובצי טקסט</span>
-                            <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="hidden" multiple>
+                        <label for="fileInput" class="border-2 border-dashed border-gray-400 hover:border-monday-blue rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition bg-gray-50 hover:bg-blue-50/40">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-monday-blue mb-1" aria-hidden="true"></i>
+                            <span class="text-sm font-bold text-gray-800">לחץ להעלאת קבצים או תמונות</span>
+                            <span class="text-xs text-gray-600 mt-1">תמונות, מסמכים או קובצי טקסט</span>
+                            <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="hidden" multiple aria-label="בחר קבצים להעלאה">
                         </label>
                     </div>
 
-                    <div id="attachmentsGrid" class="grid grid-cols-2 gap-3">
+                    <div id="attachmentsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="region" aria-label="רשימת קבצים מצורפים">
                         <!-- Dynamic Attachments -->
                     </div>
-                </div>
+                </section>
 
-                <hr class="border-gray-200">
+                <hr class="border-gray-300">
 
                 <!-- External Links Section -->
-                <div>
-                    <h3 class="font-bold text-gray-700 text-md mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-link text-monday-blue"></i> קישורים חיצוניים
+                <section aria-labelledby="linksHeading">
+                    <h3 id="linksHeading" class="font-bold text-gray-900 text-base mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-link text-monday-blue" aria-hidden="true"></i>
+                        <span>קישורים חיצוניים</span>
                     </h3>
 
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="linkTitleInput" placeholder="תיאור הקישור (למשל: מסמך אפיון)" class="w-1/3 p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
-                        <input type="url" id="linkUrlInput" placeholder="https://example.com" class="flex-1 p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
-                        <button onclick="addExternalLink()" class="bg-gray-800 hover:bg-black text-white px-4 rounded-xl text-sm font-medium shadow">
-                            הוסף
+                    <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                        <input type="text" id="linkTitleInput" placeholder="תיאור הקישור" class="sm:w-1/3 p-2.5 border border-gray-400 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
+                        <input type="url" id="linkUrlInput" placeholder="https://example.com" class="flex-1 p-2.5 border border-gray-400 rounded-xl text-sm focus:ring-2 focus:ring-monday-blue outline-none">
+                        <button onclick="addExternalLink()" class="bg-gray-800 hover:bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow">
+                            הוסף קישור
                         </button>
                     </div>
 
-                    <div id="linksList" class="space-y-2">
+                    <div id="linksList" class="space-y-2" role="region" aria-label="רשימת קישורים">
                         <!-- Dynamic Links -->
                     </div>
-                </div>
+                </section>
             </div>
 
             <!-- Modal Footer -->
-            <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500">
-                <span>מזהה משימה: <span id="modalTaskIdDisplay"></span></span>
-                <button onclick="closeTaskModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg">סגור</button>
+            <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-between items-center text-xs text-gray-700">
+                <span>מזהה משימה: <span id="modalTaskIdDisplay" class="font-mono font-bold"></span></span>
+                <button onclick="closeTaskModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 font-bold rounded-lg border border-gray-400">
+                    סגור
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Initial Default State
+        // Initial Board Data
         const DEFAULT_DATA = [
             {
                 id: 'group-1',
-                title: 'פרויקטים בעבודה',
-                color: '#0073ea', // Monday Blue
+                title: 'פרויקטים מרכזיים',
+                color: '#005bb5',
                 tasks: [
                     {
                         id: 'task-101',
-                        title: 'עיצוב דף הבית החדש',
+                        title: 'עיצוב ותכנון הדף',
                         status: 'בעבודה',
                         dueDate: '2026-10-15',
                         priority: 'גבוהה',
                         comments: [
-                            { id: 'c1', text: 'סיימנו את ה-Wireframes הראשיים.', date: '08/10/2026 10:30' }
+                            { id: 'c1', text: 'בדיקה ראשונית של המערכת.\nשורה 2: בדיקת ירידת שורה מסודרת!\nשורה 3: הכל עובד בצורה תקינה.', date: '12/10/2026 10:30' }
                         ],
                         attachments: [],
                         links: [
-                            { id: 'l1', title: 'סקיצה ב-Figma', url: 'https://figma.com' }
+                            { id: 'l1', title: 'הנחיות נגישות', url: 'https://www.isoc.org.il' }
                         ]
-                    },
-                    {
-                        id: 'task-102',
-                        title: 'אינטגרציה לשרת התשלומים',
-                        status: 'טרם התחיל',
-                        dueDate: '2026-10-20',
-                        priority: 'דחוף',
-                        comments: [],
-                        attachments: [],
-                        links: []
                     }
                 ]
             },
             {
                 id: 'group-2',
-                title: 'משימות שוטפות',
-                color: '#00c875', // Monday Green
+                title: 'משימות אישיות',
+                color: '#008a4c',
                 tasks: [
                     {
                         id: 'task-201',
-                        title: 'סנכרון שבועי עם הצוות',
+                        title: 'בדיקת נגישות ושיתוף',
                         status: 'בוצע',
-                        dueDate: '2026-10-08',
+                        dueDate: '2026-10-12',
                         priority: 'בינונית',
-                        comments: [{ id: 'c2', text: 'כל הצוות השתתף בישיבה.', date: '08/10/2026 09:00' }],
+                        comments: [],
                         attachments: [],
                         links: []
                     }
@@ -269,271 +412,238 @@
 
         let boardData = [];
         let activeTaskId = null;
+        let fontScale = 0;
 
-        // Colors palette for Groups
-        const GROUP_COLORS = [
-            '#0073ea', // Blue
-            '#00c875', // Green
-            '#a25ddc', // Purple
-            '#fdab3d', // Orange
-            '#e2445c', // Red
-            '#ffcc00', // Yellow
-            '#579bfc'  // Light Blue
-        ];
+        const GROUP_COLORS = ['#005bb5', '#008a4c', '#6d30a8', '#c86800', '#c02b3e'];
 
-        // Status configurations
-        const STATUS_CONFIG = {
-            'בוצע': { bg: 'bg-[#00c875]', text: 'text-white' },
-            'בעבודה': { bg: 'bg-[#fdab3d]', text: 'text-white' },
-            'נעצר': { bg: 'bg-[#e2445c]', text: 'text-white' },
-            'טרם התחיל': { bg: 'bg-[#c4c4c4]', text: 'text-white' }
-        };
-
-        // Priority configurations
-        const PRIORITY_CONFIG = {
-            'דחוף': 'bg-red-100 text-red-700 border-red-300',
-            'גבוהה': 'bg-orange-100 text-orange-700 border-orange-300',
-            'בינונית': 'bg-blue-100 text-blue-700 border-blue-300',
-            'נמוכה': 'bg-gray-100 text-gray-700 border-gray-300'
-        };
-
-        window.onload = function() {
-            loadData();
-            renderBoard();
-        };
-
-        function loadData() {
-            const saved = localStorage.getItem('taskday_board_data');
-            if (saved) {
+        // Initialize Board
+        function initApp() {
+            const savedData = localStorage.getItem('taskday_accessible_data');
+            if (savedData) {
                 try {
-                    boardData = JSON.parse(saved);
-                } catch (e) {
-                    console.error('Failed to parse storage', e);
+                    boardData = JSON.parse(savedData);
+                } catch(e) {
                     boardData = DEFAULT_DATA;
                 }
             } else {
                 boardData = DEFAULT_DATA;
             }
+            renderBoard();
         }
 
         function saveData() {
-            localStorage.setItem('taskday_board_data', JSON.stringify(boardData));
+            localStorage.setItem('taskday_accessible_data', JSON.stringify(boardData));
             renderStats();
         }
 
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById('srAnnouncer');
+            if (announcer) {
+                announcer.innerText = message;
+            }
+        }
+
+        // Render Entire Board
         function renderBoard() {
             const container = document.getElementById('groupsContainer');
             container.innerHTML = '';
 
-            if (boardData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-                        <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
-                        <p class="text-gray-500 font-medium">אין קבוצות משימות כרגע</p>
-                        <button onclick="addNewGroup()" class="mt-3 text-monday-blue font-semibold hover:underline">+ לחץ כאן להוספת קבוצה</button>
-                    </div>
-                `;
-                renderStats();
-                return;
-            }
-
-            boardData.forEach((group, groupIndex) => {
+            boardData.forEach((group, groupIdx) => {
                 const groupEl = document.createElement('div');
-                groupEl.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200';
+                groupEl.className = 'bg-white rounded-2xl shadow-sm border border-gray-300 overflow-hidden';
+                
+                let tasksHtml = '';
+                group.tasks.forEach((task, taskIdx) => {
+                    const statusBg = getStatusBgClass(task.status);
+                    const priorityBg = getPriorityBgClass(task.priority);
+                    const fileCount = task.attachments ? task.attachments.length : 0;
+                    const commentCount = task.comments ? task.comments.length : 0;
 
-                // Color picker options html
-                const colorOptionsHtml = GROUP_COLORS.map(c => `
-                    <button onclick="changeGroupColor('${group.id}', '${c}')" class="w-5 h-5 rounded-full border border-white shadow-sm hover:scale-110 transition" style="background-color: ${c}"></button>
-                `).join('');
+                    tasksHtml += `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50/80 transition group">
+                            <td class="py-3 px-4 w-12 text-center text-gray-400">
+                                <i class="fa-solid fa-grip-vertical cursor-grab" aria-hidden="true" title="משימה"></i>
+                            </td>
+                            <td class="py-3 px-3 font-semibold text-gray-900 min-w-[220px]">
+                                <input type="text" value="${escapeHtml(task.title)}" 
+                                       onchange="updateTaskTitle('${group.id}', '${task.id}', this.value)"
+                                       aria-label="שם המשימה"
+                                       class="w-full bg-transparent hover:bg-white focus:bg-white px-2 py-1 rounded border border-transparent hover:border-gray-300 focus:border-monday-blue font-semibold outline-none transition">
+                            </td>
+                            <td class="py-3 px-2 w-36 text-center">
+                                <select onchange="updateTaskStatus('${group.id}', '${task.id}', this.value)" 
+                                        aria-label="סטטוס משימה"
+                                        class="w-full py-1.5 px-2 rounded-lg text-xs font-bold text-white shadow-xs cursor-pointer ${statusBg} text-center border-none">
+                                    <option value="בוצע" ${task.status === 'בוצע' ? 'selected' : ''} class="bg-white text-black">🟢 בוצע</option>
+                                    <option value="בעבודה" ${task.status === 'בעבודה' ? 'selected' : ''} class="bg-white text-black">🟠 בעבודה</option>
+                                    <option value="נעצר" ${task.status === 'נעצר' ? 'selected' : ''} class="bg-white text-black">🔴 נעצר</option>
+                                    <option value="טרם התחיל" ${task.status === 'טרם התחיל' ? 'selected' : ''} class="bg-white text-black">⚪ טרם התחיל</option>
+                                </select>
+                            </td>
+                            <td class="py-3 px-2 w-32 text-center">
+                                <input type="date" value="${task.dueDate || ''}" 
+                                       onchange="updateTaskDate('${group.id}', '${task.id}', this.value)"
+                                       aria-label="תאריך יעד"
+                                       class="text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1.5 rounded-lg border border-gray-300 outline-none w-full text-center">
+                            </td>
+                            <td class="py-3 px-2 w-32 text-center">
+                                <select onchange="updateTaskPriority('${group.id}', '${task.id}', this.value)" 
+                                        aria-label="עדיפות"
+                                        class="w-full py-1.5 px-2 rounded-lg text-xs font-bold text-white shadow-xs cursor-pointer ${priorityBg} text-center border-none">
+                                    <option value="דחוף" ${task.priority === 'דחוף' ? 'selected' : ''} class="bg-white text-black">🔥 דחוף</option>
+                                    <option value="גבוהה" ${task.priority === 'גבוהה' ? 'selected' : ''} class="bg-white text-black">⚡ גבוהה</option>
+                                    <option value="בינונית" ${task.priority === 'בינונית' ? 'selected' : ''} class="bg-white text-black">🔷 בינונית</option>
+                                    <option value="נמוכה" ${task.priority === 'נמוכה' ? 'selected' : ''} class="bg-white text-black">🔹 נמוכה</option>
+                                </select>
+                            </td>
+                            <td class="py-3 px-3 w-28 text-center">
+                                <button onclick="openTaskModal('${group.id}', '${task.id}')" 
+                                        aria-label="פתח פרטי משימה, ${commentCount} תגובות, ${fileCount} קבצים"
+                                        class="inline-flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-monday-blue font-bold px-3 py-1.5 rounded-lg text-xs border border-blue-200 transition">
+                                    <i class="fa-regular fa-comment-dots" aria-hidden="true"></i>
+                                    <span>${commentCount + fileCount}</span>
+                                </button>
+                            </td>
+                            <td class="py-3 px-3 w-24 text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button onclick="moveTask('${group.id}', ${taskIdx}, -1)" aria-label="הזז משימה למעלה" class="p-1 text-gray-500 hover:text-monday-blue" ${taskIdx === 0 ? 'disabled class="opacity-30"' : ''}>
+                                        <i class="fa-solid fa-arrow-up text-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button onclick="moveTask('${group.id}', ${taskIdx}, 1)" aria-label="הזז משימה למטה" class="p-1 text-gray-500 hover:text-monday-blue" ${taskIdx === group.tasks.length - 1 ? 'disabled class="opacity-30"' : ''}>
+                                        <i class="fa-solid fa-arrow-down text-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button onclick="deleteTask('${group.id}', '${task.id}')" aria-label="מחק משימה" class="p-1 text-red-600 hover:text-red-800 mr-1">
+                                        <i class="fa-solid fa-trash-can text-xs" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
 
                 groupEl.innerHTML = `
-                    <!-- Group Header -->
-                    <div class="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
-                        <div class="flex items-center space-x-3 space-x-reverse flex-1">
-                            <div class="w-3.5 h-8 rounded-r-md" style="background-color: ${group.color}"></div>
-                            
-                            <!-- Group Title Inline Edit -->
+                    <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3" style="border-right: 6px solid ${group.color};">
+                        <div class="flex items-center gap-3">
                             <input type="text" value="${escapeHtml(group.title)}" 
-                                onchange="updateGroupTitle('${group.id}', this.value)"
-                                class="font-bold text-lg text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:bg-white focus:outline-none px-2 py-0.5 rounded transition"
-                                style="color: ${group.color}">
-
-                            <span class="text-xs bg-gray-200/70 text-gray-600 px-2.5 py-0.5 rounded-full font-semibold">
-                                ${group.tasks.length} משימות
-                            </span>
+                                   onchange="updateGroupTitle('${group.id}', this.value)"
+                                   aria-label="שם קבוצת המשימות"
+                                   class="text-lg font-bold text-gray-900 bg-transparent hover:bg-gray-100 focus:bg-white px-2 py-1 rounded border border-transparent focus:border-monday-blue outline-none">
+                            <span class="text-xs bg-gray-200 text-gray-800 font-extrabold px-2.5 py-0.5 rounded-full">${group.tasks.length} משימות</span>
                         </div>
-
-                        <!-- Group Controls -->
-                        <div class="flex items-center space-x-2 space-x-reverse">
-                            <!-- Color Selector Dropdown / Row -->
-                            <div class="hidden sm:flex items-center space-x-1 space-x-reverse bg-gray-100 p-1 rounded-lg">
-                                ${colorOptionsHtml}
-                            </div>
-
-                            <button onclick="addNewTask('${group.id}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-                                <i class="fa-solid fa-plus text-monday-blue"></i> הוסף משימה
+                        
+                        <div class="flex items-center gap-2">
+                            <button onclick="addNewTask('${group.id}')" class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold px-3 py-1.5 rounded-lg text-xs border border-gray-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus text-monday-blue" aria-hidden="true"></i>
+                                <span>הוסף משימה</span>
                             </button>
-
-                            <button onclick="deleteGroup('${group.id}')" class="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition" title="מחק קבוצה">
-                                <i class="fa-regular fa-trash-can"></i>
+                            <button onclick="deleteGroup('${group.id}')" aria-label="מחק קבוצה זו" class="text-gray-400 hover:text-red-600 p-1.5 rounded">
+                                <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Tasks Table -->
                     <div class="overflow-x-auto">
-                        <table class="w-full text-right border-collapse min-w-[750px]">
+                        <table class="w-full text-right border-collapse">
                             <thead>
-                                <tr class="text-xs text-gray-400 border-b border-gray-200 bg-gray-50/30 uppercase tracking-wider">
-                                    <th class="py-2.5 px-4 w-12 text-center">סדר</th>
-                                    <th class="py-2.5 px-4">שם המשימה</th>
-                                    <th class="py-2.5 px-4 w-36 text-center">סטטוס</th>
-                                    <th class="py-2.5 px-4 w-36 text-center">תאריך יעד</th>
-                                    <th class="py-2.5 px-4 w-28 text-center">עדיפות</th>
-                                    <th class="py-2.5 px-4 w-24 text-center">מדיה/תגובות</th>
-                                    <th class="py-2.5 px-4 w-16 text-center">פעולות</th>
+                                <tr class="bg-gray-50/80 text-gray-700 text-xs font-extrabold border-b border-gray-200">
+                                    <th class="py-2.5 px-4 w-12 text-center">#</th>
+                                    <th class="py-2.5 px-3">שם המשימה</th>
+                                    <th class="py-2.5 px-2 w-36 text-center">סטטוס</th>
+                                    <th class="py-2.5 px-2 w-32 text-center">תאריך יעד</th>
+                                    <th class="py-2.5 px-2 w-32 text-center">עדיפות</th>
+                                    <th class="py-2.5 px-3 w-28 text-center">תגובות ומדיה</th>
+                                    <th class="py-2.5 px-3 w-24 text-center">פעולות</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${group.tasks.length === 0 ? `
+                            <tbody>
+                                ${tasksHtml.length > 0 ? tasksHtml : `
                                     <tr>
-                                        <td colspan="7" class="text-center py-6 text-gray-400 text-sm">
-                                            אין משימות בקבוצה זו. <button onclick="addNewTask('${group.id}')" class="text-monday-blue font-semibold underline">הוסף משימה ראשונה</button>
+                                        <td colspan="7" class="text-center py-6 text-gray-500 text-sm">
+                                            אין משימות בקבוצה זו. לחצי על "הוסף משימה" כדי להתחיל.
                                         </td>
                                     </tr>
-                                ` : group.tasks.map((task, taskIndex) => renderTaskRow(group, task, taskIndex)).join('')}
+                                `}
                             </tbody>
                         </table>
                     </div>
                 `;
-
                 container.appendChild(groupEl);
             });
 
             renderStats();
         }
 
-        function renderTaskRow(group, task, index) {
-            const statusStyle = STATUS_CONFIG[task.status] || STATUS_CONFIG['טרם התחיל'];
-            const priorityStyle = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG['בינונית'];
+        function renderStats() {
+            let total = 0, done = 0, working = 0, stuck = 0;
+            boardData.forEach(g => {
+                g.tasks.forEach(t => {
+                    total++;
+                    if (t.status === 'בוצע') done++;
+                    if (t.status === 'בעבודה') working++;
+                    if (t.status === 'נעצר') stuck++;
+                });
+            });
 
-            const attachmentsCount = (task.attachments ? task.attachments.length : 0) + (task.links ? task.links.length : 0);
-            const commentsCount = task.comments ? task.comments.length : 0;
-
-            return `
-                <tr class="task-row transition-colors group">
-                    <!-- Reorder Controls -->
-                    <td class="py-3 px-2 text-center">
-                        <div class="flex flex-col items-center justify-center opacity-40 group-hover:opacity-100 transition">
-                            <button onclick="moveTask('${group.id}', ${index}, -1)" ${index === 0 ? 'disabled class="text-gray-300"' : 'class="hover:text-monday-blue"'}>
-                                <i class="fa-solid fa-chevron-up text-[10px]"></i>
-                            </button>
-                            <button onclick="moveTask('${group.id}', ${index}, 1)" ${index === group.tasks.length - 1 ? 'disabled class="text-gray-300"' : 'class="hover:text-monday-blue"'}>
-                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                            </button>
-                        </div>
-                    </td>
-
-                    <!-- Task Title (Editable) -->
-                    <td class="py-3 px-4">
-                        <div class="flex items-center space-x-2 space-x-reverse">
-                            <input type="text" value="${escapeHtml(task.title)}" 
-                                onchange="updateTaskTitle('${group.id}', '${task.id}', this.value)"
-                                class="w-full text-gray-800 font-medium bg-transparent border-b border-transparent hover:border-gray-300 focus:border-monday-blue focus:outline-none px-1 py-0.5 rounded transition">
-                            <button onclick="openTaskModal('${task.id}')" class="text-gray-400 hover:text-monday-blue opacity-0 group-hover:opacity-100 transition p-1" title="פתח פרטים מלאים">
-                                <i class="fa-solid fa-expand text-xs"></i>
-                            </button>
-                        </div>
-                    </td>
-
-                    <!-- Status Cell -->
-                    <td class="py-3 px-2 text-center">
-                        <select onchange="updateTaskStatus('${group.id}', '${task.id}', this.value)" 
-                            class="${statusStyle.bg} ${statusStyle.text} font-semibold text-xs py-1.5 px-3 rounded-md border-0 cursor-pointer shadow-sm focus:outline-none text-center w-full appearance-none transition">
-                            <option value="בוצע" ${task.status === 'בוצע' ? 'selected' : ''}>🟢 בוצע</option>
-                            <option value="בעבודה" ${task.status === 'בעבודה' ? 'selected' : ''}>🟠 בעבודה</option>
-                            <option value="נעצר" ${task.status === 'נעצר' ? 'selected' : ''}>🔴 נעצר</option>
-                            <option value="טרם התחיל" ${task.status === 'טרם התחיל' ? 'selected' : ''}>⚪ טרם התחיל</option>
-                        </select>
-                    </td>
-
-                    <!-- Due Date -->
-                    <td class="py-3 px-2 text-center">
-                        <input type="date" value="${task.dueDate || ''}" 
-                            onchange="updateTaskDueDate('${group.id}', '${task.id}', this.value)"
-                            class="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-2 py-1 focus:ring-1 focus:ring-monday-blue outline-none w-full text-center">
-                    </td>
-
-                    <!-- Priority Badge -->
-                    <td class="py-3 px-2 text-center">
-                        <select onchange="updateTaskPriority('${group.id}', '${task.id}', this.value)"
-                            class="text-xs font-semibold px-2 py-1 rounded-md border ${priorityStyle} cursor-pointer outline-none w-full text-center">
-                            <option value="דחוף" ${task.priority === 'דחוף' ? 'selected' : ''}>🔥 דחוף</option>
-                            <option value="גבוהה" ${task.priority === 'גבוהה' ? 'selected' : ''}>⚡ גבוהה</option>
-                            <option value="בינונית" ${task.priority === 'בינונית' ? 'selected' : ''}>🔷 בינונית</option>
-                            <option value="נמוכה" ${task.priority === 'נמוכה' ? 'selected' : ''}>🔹 נמוכה</option>
-                        </select>
-                    </td>
-
-                    <!-- Attachments / Comments Badges -->
-                    <td class="py-3 px-2 text-center">
-                        <div class="flex items-center justify-center space-x-2 space-x-reverse cursor-pointer" onclick="openTaskModal('${task.id}')">
-                            <span class="text-xs font-medium ${commentsCount > 0 ? 'text-monday-blue bg-blue-50' : 'text-gray-400'} px-2 py-0.5 rounded-full border border-gray-200 flex items-center gap-1">
-                                <i class="fa-regular fa-comment"></i> ${commentsCount}
-                            </span>
-                            <span class="text-xs font-medium ${attachmentsCount > 0 ? 'text-purple-600 bg-purple-50' : 'text-gray-400'} px-2 py-0.5 rounded-full border border-gray-200 flex items-center gap-1">
-                                <i class="fa-solid fa-paperclip"></i> ${attachmentsCount}
-                            </span>
-                        </div>
-                    </td>
-
-                    <!-- Delete Button -->
-                    <td class="py-3 px-2 text-center">
-                        <button onclick="deleteTask('${group.id}', '${task.id}')" class="text-gray-300 hover:text-red-500 transition p-1" title="מחק משימה">
-                            <i class="fa-regular fa-trash-can text-sm"></i>
-                        </button>
-                    </td>
-                </tr>
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = `
+                <div class="font-bold text-gray-800">סה"כ: ${total}</div>
+                <div class="text-xs bg-green-100 text-monday-green font-bold px-2.5 py-1 rounded-md border border-green-300">🟢 הושלמו: ${done}</div>
+                <div class="text-xs bg-orange-100 text-monday-orange font-bold px-2.5 py-1 rounded-md border border-orange-300">🟠 בתהליך: ${working}</div>
+                <div class="text-xs bg-red-100 text-monday-red font-bold px-2.5 py-1 rounded-md border border-red-300">🔴 נעצרו: ${stuck}</div>
             `;
         }
 
+        // Helpers for status colors
+        function getStatusBgClass(status) {
+            switch(status) {
+                case 'בוצע': return 'bg-monday-green';
+                case 'בעבודה': return 'bg-monday-orange';
+                case 'נעצר': return 'bg-monday-red';
+                default: return 'bg-gray-500';
+            }
+        }
+
+        function getPriorityBgClass(priority) {
+            switch(priority) {
+                case 'דחוף': return 'bg-monday-red';
+                case 'גבוהה': return 'bg-monday-purple';
+                case 'בינונית': return 'bg-monday-blue';
+                default: return 'bg-gray-500';
+            }
+        }
+
+        // Group CRUD
         function addNewGroup() {
             const newGroup = {
                 id: 'group-' + Date.now(),
-                title: 'קטגוריה חדשה',
-                color: GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)],
+                title: 'קבוצה חדשה',
+                color: GROUP_COLORS[boardData.length % GROUP_COLORS.length],
                 tasks: []
             };
             boardData.push(newGroup);
             saveData();
             renderBoard();
+            announceToScreenReader('נוספה קבוצת משימות חדשה');
         }
 
         function updateGroupTitle(groupId, newTitle) {
             const group = boardData.find(g => g.id === groupId);
             if (group) {
-                group.title = newTitle.trim() || 'קטגוריה ללא שם';
+                group.title = newTitle;
                 saveData();
-            }
-        }
-
-        function changeGroupColor(groupId, color) {
-            const group = boardData.find(g => g.id === groupId);
-            if (group) {
-                group.color = color;
-                saveData();
-                renderBoard();
             }
         }
 
         function deleteGroup(groupId) {
-            if (confirm('האם אתה בטוח שברצונך למחוק קבוצה זו וכל משימותיה?')) {
+            if (confirm('האם למחוק קבוצה זו וכל המשימות שבה?')) {
                 boardData = boardData.filter(g => g.id !== groupId);
                 saveData();
                 renderBoard();
+                announceToScreenReader('הקבוצה נמחקה');
             }
         }
 
+        // Task CRUD
         function addNewTask(groupId) {
             const group = boardData.find(g => g.id === groupId);
             if (group) {
@@ -541,13 +651,48 @@
                     id: 'task-' + Date.now(),
                     title: 'משימה חדשה',
                     status: 'טרם התחיל',
-                    dueDate: new Date().toISOString().split('T')[0],
+                    dueDate: '',
                     priority: 'בינונית',
                     comments: [],
                     attachments: [],
                     links: []
                 };
                 group.tasks.push(newTask);
+                saveData();
+                renderBoard();
+                announceToScreenReader('נוספה משימה חדשה');
+            }
+        }
+
+        function updateTaskTitle(groupId, taskId, title) {
+            const task = findTask(groupId, taskId);
+            if (task) {
+                task.title = title;
+                saveData();
+            }
+        }
+
+        function updateTaskStatus(groupId, taskId, status) {
+            const task = findTask(groupId, taskId);
+            if (task) {
+                task.status = status;
+                saveData();
+                renderBoard();
+            }
+        }
+
+        function updateTaskDate(groupId, taskId, dueDate) {
+            const task = findTask(groupId, taskId);
+            if (task) {
+                task.dueDate = dueDate;
+                saveData();
+            }
+        }
+
+        function updateTaskPriority(groupId, taskId, priority) {
+            const task = findTask(groupId, taskId);
+            if (task) {
+                task.priority = priority;
                 saveData();
                 renderBoard();
             }
@@ -559,94 +704,45 @@
                 group.tasks = group.tasks.filter(t => t.id !== taskId);
                 saveData();
                 renderBoard();
+                announceToScreenReader('האירוע/המשימה נמחקה');
             }
         }
 
-        function updateTaskTitle(groupId, taskId, title) {
-            const task = findTask(taskId);
-            if (task) {
-                task.title = title;
-                saveData();
-            }
-        }
-
-        function updateTaskStatus(groupId, taskId, status) {
-            const task = findTask(taskId);
-            if (task) {
-                task.status = status;
-                saveData();
-                renderBoard();
-            }
-        }
-
-        function updateTaskDueDate(groupId, taskId, date) {
-            const task = findTask(taskId);
-            if (task) {
-                task.dueDate = date;
-                saveData();
-            }
-        }
-
-        function updateTaskPriority(groupId, taskId, priority) {
-            const task = findTask(taskId);
-            if (task) {
-                task.priority = priority;
-                saveData();
-                renderBoard();
-            }
-        }
-
-        function moveTask(groupId, currentIndex, direction) {
+        function moveTask(groupId, idx, direction) {
             const group = boardData.find(g => g.id === groupId);
             if (!group) return;
-
-            const newIndex = currentIndex + direction;
-            if (newIndex < 0 || newIndex >= group.tasks.length) return;
-
-            // Swap items
-            const temp = group.tasks[currentIndex];
-            group.tasks[currentIndex] = group.tasks[newIndex];
-            group.tasks[newIndex] = temp;
-
+            const targetIdx = idx + direction;
+            if (targetIdx < 0 || targetIdx >= group.tasks.length) return;
+            
+            const temp = group.tasks[idx];
+            group.tasks[idx] = group.tasks[targetIdx];
+            group.tasks[targetIdx] = temp;
+            
             saveData();
             renderBoard();
         }
 
-        function findTask(taskId) {
-            for (let group of boardData) {
-                const task = group.tasks.find(t => t.id === taskId);
-                if (task) return task;
-            }
-            return null;
+        function findTask(groupId, taskId) {
+            const group = boardData.find(g => g.id === groupId);
+            return group ? group.tasks.find(t => t.id === taskId) : null;
         }
 
-        function findTaskGroup(taskId) {
-            for (let group of boardData) {
-                const task = group.tasks.find(t => t.id === taskId);
-                if (task) return group;
-            }
-            return null;
-        }
-
-        function openTaskModal(taskId) {
-            activeTaskId = taskId;
-            const task = findTask(taskId);
-            const group = findTaskGroup(taskId);
-            if (!task || !group) return;
-
-            document.getElementById('modalTaskTitle').value = task.title;
-            document.getElementById('modalTaskIdDisplay').innerText = task.id;
+        // Modal Drawer Logic
+        function openTaskModal(groupId, taskId) {
+            activeTaskId = { groupId, taskId };
+            const group = boardData.find(g => g.id === groupId);
+            const task = group.tasks.find(t => t.id === taskId);
             
-            const groupBadge = document.getElementById('modalGroupBadge');
-            groupBadge.innerText = group.title;
-            groupBadge.style.backgroundColor = group.color;
-
+            document.getElementById('modalGroupBadge').innerText = group.title;
+            document.getElementById('modalGroupBadge').style.backgroundColor = group.color;
+            document.getElementById('modalTaskTitle').value = task.title;
             document.getElementById('modalStatusSelect').value = task.status;
             document.getElementById('modalPrioritySelect').value = task.priority;
+            document.getElementById('modalTaskIdDisplay').innerText = task.id;
 
-            renderModalComments(task);
-            renderModalAttachments(task);
-            renderModalLinks(task);
+            renderModalComments(task.comments || []);
+            renderModalAttachments(task.attachments || []);
+            renderModalLinks(task.links || []);
 
             const modal = document.getElementById('taskModal');
             const panel = document.getElementById('modalPanel');
@@ -654,6 +750,8 @@
             setTimeout(() => {
                 panel.classList.remove('translate-x-full');
             }, 10);
+
+            announceToScreenReader('חלונית פרטי משימה נפתחה');
         }
 
         function closeTaskModal() {
@@ -663,86 +761,73 @@
             setTimeout(() => {
                 modal.classList.add('hidden');
                 activeTaskId = null;
-                renderBoard();
-            }, 300);
+            }, 200);
         }
 
         function updateTaskFromModal() {
             if (!activeTaskId) return;
-            const task = findTask(activeTaskId);
-            if (!task) return;
-
-            task.title = document.getElementById('modalTaskTitle').value;
-            task.status = document.getElementById('modalStatusSelect').value;
-            task.priority = document.getElementById('modalPrioritySelect').value;
-
-            saveData();
+            const { groupId, taskId } = activeTaskId;
+            const task = findTask(groupId, taskId);
+            if (task) {
+                task.title = document.getElementById('modalTaskTitle').value;
+                task.status = document.getElementById('modalStatusSelect').value;
+                task.priority = document.getElementById('modalPrioritySelect').value;
+                saveData();
+                renderBoard();
+            }
         }
 
-        // Comments Management
+        // Add Comment with Multiline Fix
         function addComment() {
             if (!activeTaskId) return;
             const input = document.getElementById('newCommentInput');
             const text = input.value.trim();
             if (!text) return;
 
-            const task = findTask(activeTaskId);
-            if (task) {
-                if (!task.comments) task.comments = [];
-                const now = new Date();
-                const formattedDate = `${now.toLocaleDateString('he-IL')} ${now.toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'})}`;
-                
-                task.comments.unshift({
-                    id: 'c-' + Date.now(),
-                    text: text,
-                    date: formattedDate
-                });
+            const task = findTask(activeTaskId.groupId, activeTaskId.taskId);
+            if (!task.comments) task.comments = [];
 
-                input.value = '';
-                saveData();
-                renderModalComments(task);
-            }
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('he-IL') + ' ' + now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+            task.comments.push({
+                id: 'c-' + Date.now(),
+                text: text, // Raw text preserving newline characters
+                date: dateStr
+            });
+
+            input.value = '';
+            saveData();
+            renderModalComments(task.comments);
+            renderBoard();
         }
 
-        function deleteComment(commentId) {
-            if (!activeTaskId) return;
-            const task = findTask(activeTaskId);
-            if (task && task.comments) {
-                task.comments = task.comments.filter(c => c.id !== commentId);
-                saveData();
-                renderModalComments(task);
-            }
-        }
-
-        function renderModalComments(task) {
+        function renderModalComments(comments) {
             const container = document.getElementById('commentsList');
-            if (!task.comments || task.comments.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">אין תגובות עדיין.</p>`;
+            if (comments.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 italic">אין תגובות עדיין. הקלד תגובה למעלה.</p>';
                 return;
             }
 
-            container.innerHTML = task.comments.map(c => `
-                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 flex justify-between items-start">
-                    <div>
-                        <p class="text-sm text-gray-800 leading-relaxed">${escapeHtml(c.text)}</p>
-                        <span class="text-[10px] text-gray-400 mt-1 block">${c.date}</span>
+            container.innerHTML = comments.map(c => `
+                <div class="bg-blue-50/60 border border-blue-200 rounded-xl p-3 text-xs text-gray-800 space-y-1">
+                    <div class="flex justify-between items-center text-gray-500 font-bold text-[11px]">
+                        <span><i class="fa-solid fa-user ml-1 text-monday-blue"></i>משתמש</span>
+                        <span>${c.date}</span>
                     </div>
-                    <button onclick="deleteComment('${c.id}')" class="text-gray-300 hover:text-red-500 p-1">
-                        <i class="fa-solid fa-xmark text-xs"></i>
-                    </button>
+                    <!-- Fix: whitespace-pre-wrap-custom preserves all line breaks -->
+                    <div class="text-gray-900 leading-relaxed font-normal whitespace-pre-wrap-custom">${escapeHtml(c.text)}</div>
                 </div>
             `).join('');
         }
 
-        // File Attachments Management
+        // File Attachments
         function handleFileUpload(event) {
             if (!activeTaskId) return;
             const files = event.target.files;
             if (!files || files.length === 0) return;
 
-            const task = findTask(activeTaskId);
-            if (!task) return;
-
+            const task = findTask(activeTaskId.groupId, activeTaskId.taskId);
             if (!task.attachments) task.attachments = [];
 
             Array.from(files).forEach(file => {
@@ -756,61 +841,56 @@
                         data: e.target.result
                     });
                     saveData();
-                    renderModalAttachments(task);
+                    renderModalAttachments(task.attachments);
+                    renderBoard();
                 };
                 reader.readAsDataURL(file);
             });
         }
 
-        function deleteAttachment(attId) {
-            if (!activeTaskId) return;
-            const task = findTask(activeTaskId);
-            if (task && task.attachments) {
-                task.attachments = task.attachments.filter(a => a.id !== attId);
-                saveData();
-                renderModalAttachments(task);
-            }
-        }
-
-        function renderModalAttachments(task) {
+        function renderModalAttachments(attachments) {
             const container = document.getElementById('attachmentsGrid');
-            if (!task.attachments || task.attachments.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic col-span-2">אין קבצים מצורפים.</p>`;
+            if (attachments.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 italic col-span-2">אין קבצים מצורפים.</p>';
                 return;
             }
 
-            container.innerHTML = task.attachments.map(att => {
+            container.innerHTML = attachments.map(att => {
                 const isImage = att.type.startsWith('image/');
                 return `
-                    <div class="border border-gray-200 rounded-xl p-2.5 bg-white flex items-center justify-between shadow-sm relative group overflow-hidden">
-                        <div class="flex items-center space-x-3 space-x-reverse overflow-hidden">
-                            ${isImage ? `
-                                <img src="${att.data}" class="w-10 h-10 object-cover rounded-lg border">
-                            ` : `
-                                <div class="w-10 h-10 rounded-lg bg-blue-50 text-monday-blue flex items-center justify-center font-bold text-xs">
-                                    <i class="fa-solid fa-file text-base"></i>
-                                </div>
-                            `}
-                            <div class="truncate">
-                                <p class="text-xs font-semibold text-gray-700 truncate" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</p>
-                                <span class="text-[10px] text-gray-400">${att.size}</span>
-                            </div>
+                    <div class="bg-gray-50 border border-gray-300 rounded-xl p-2.5 flex items-center gap-3">
+                        ${isImage ? 
+                            `<img src="${att.data}" alt="${escapeHtml(att.name)}" class="w-12 h-12 object-cover rounded-lg border border-gray-200">` : 
+                            `<div class="w-12 h-12 bg-blue-100 text-monday-blue flex items-center justify-center rounded-lg text-lg font-bold"><i class="fa-solid fa-file"></i></div>`
+                        }
+                        <div class="flex-1 min-w-0 text-xs">
+                            <a href="${att.data}" download="${att.name}" class="font-bold text-monday-blue hover:underline truncate block" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</a>
+                            <span class="text-gray-500 text-[10px]">${att.size}</span>
                         </div>
-                        <button onclick="deleteAttachment('${att.id}')" class="text-gray-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition">
-                            <i class="fa-solid fa-trash text-xs"></i>
+                        <button onclick="deleteAttachment('${att.id}')" aria-label="מחק קובץ" class="text-gray-400 hover:text-red-600 p-1">
+                            <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 `;
             }).join('');
         }
 
-        // Links Management
+        function deleteAttachment(attId) {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId.groupId, activeTaskId.taskId);
+            task.attachments = task.attachments.filter(a => a.id !== attId);
+            saveData();
+            renderModalAttachments(task.attachments);
+            renderBoard();
+        }
+
+        // Links Logic
         function addExternalLink() {
             if (!activeTaskId) return;
             const titleInput = document.getElementById('linkTitleInput');
             const urlInput = document.getElementById('linkUrlInput');
-
-            const title = titleInput.value.trim() || 'קישור חיצוני';
+            
+            const title = titleInput.value.trim() || urlInput.value.trim();
             let url = urlInput.value.trim();
 
             if (!url) return;
@@ -818,101 +898,115 @@
                 url = 'https://' + url;
             }
 
-            const task = findTask(activeTaskId);
-            if (task) {
-                if (!task.links) task.links = [];
-                task.links.push({
-                    id: 'link-' + Date.now(),
-                    title: title,
-                    url: url
-                });
+            const task = findTask(activeTaskId.groupId, activeTaskId.taskId);
+            if (!task.links) task.links = [];
 
-                titleInput.value = '';
-                urlInput.value = '';
-                saveData();
-                renderModalLinks(task);
-            }
+            task.links.push({ id: 'link-' + Date.now(), title, url });
+
+            titleInput.value = '';
+            urlInput.value = '';
+            saveData();
+            renderModalLinks(task.links);
         }
 
-        function deleteLink(linkId) {
-            if (!activeTaskId) return;
-            const task = findTask(activeTaskId);
-            if (task && task.links) {
-                task.links = task.links.filter(l => l.id !== linkId);
-                saveData();
-                renderModalLinks(task);
-            }
-        }
-
-        function renderModalLinks(task) {
+        function renderModalLinks(links) {
             const container = document.getElementById('linksList');
-            if (!task.links || task.links.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">אין קישורים מצורפים.</p>`;
+            if (links.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 italic">אין קישורים חיצוניים.</p>';
                 return;
             }
 
-            container.innerHTML = task.links.map(l => `
-                <div class="flex items-center justify-between border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-xs">
-                    <a href="${l.url}" target="_blank" class="text-monday-blue font-semibold hover:underline flex items-center gap-2 truncate">
-                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+            container.innerHTML = links.map(l => `
+                <div class="flex items-center justify-between bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-xs">
+                    <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="font-bold text-monday-blue hover:underline flex items-center gap-2">
+                        <i class="fa-solid fa-up-right-from-square text-[10px]"></i>
                         <span>${escapeHtml(l.title)}</span>
                     </a>
-                    <button onclick="deleteLink('${l.id}')" class="text-gray-300 hover:text-red-500 p-1">
-                        <i class="fa-solid fa-xmark text-xs"></i>
+                    <button onclick="deleteLink('${l.id}')" class="text-gray-400 hover:text-red-600 p-1">
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             `).join('');
         }
 
-        function renderStats() {
-            let total = 0;
-            let done = 0;
-            let inProgress = 0;
+        function deleteLink(linkId) {
+            if (!activeTaskId) return;
+            const task = findTask(activeTaskId.groupId, activeTaskId.taskId);
+            task.links = task.links.filter(l => l.id !== linkId);
+            saveData();
+            renderModalLinks(task.links);
+        }
 
-            boardData.forEach(g => {
-                g.tasks.forEach(t => {
-                    total++;
-                    if (t.status === 'בוצע') done++;
-                    if (t.status === 'בעבודה') inProgress++;
-                });
+        // Accessibility Menu Toolbar Controls
+        function toggleAccessibilityMenu() {
+            const menu = document.getElementById('accessibilityMenu');
+            const btn = document.getElementById('accTriggerBtn');
+            const isHidden = menu.classList.contains('hidden');
+
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+            } else {
+                menu.classList.add('hidden');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function adjustFontSize(delta) {
+            fontScale = Math.max(-1, Math.min(2, fontScale + delta));
+            const html = document.documentElement;
+            html.classList.remove('text-sm', 'text-base', 'text-lg', 'text-xl');
+            
+            if (fontScale === -1) html.classList.add('text-sm');
+            if (fontScale === 0) html.classList.add('text-base');
+            if (fontScale === 1) html.classList.add('text-lg');
+            if (fontScale === 2) html.classList.add('text-xl');
+        }
+
+        function resetFontSize() {
+            fontScale = 0;
+            adjustFontSize(0);
+        }
+
+        function toggleAccMode(modeClass) {
+            document.body.classList.toggle(modeClass);
+            const isSet = document.body.classList.contains(modeClass);
+            const badge = document.getElementById('badge-' + modeClass);
+            if (badge) {
+                badge.innerText = isSet ? 'פעיל' : 'כבוי';
+                badge.className = isSet 
+                    ? 'text-[10px] bg-purple-700 text-white font-bold px-1.5 py-0.5 rounded' 
+                    : 'text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded';
+            }
+        }
+
+        function resetAllAccessibility() {
+            document.body.className = 'min-h-screen flex flex-col antialiased';
+            resetFontSize();
+            ['high-contrast', 'monochrome', 'invert-colors', 'highlight-links', 'readable-font'].forEach(m => {
+                const badge = document.getElementById('badge-' + m);
+                if (badge) {
+                    badge.innerText = 'כבוי';
+                    badge.className = 'text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded';
+                }
             });
-
-            const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-
-            document.getElementById('statsContainer').innerHTML = `
-                <div class="flex items-center gap-1.5">
-                    <span class="text-gray-500">סה"כ משימות:</span>
-                    <span class="font-bold text-gray-800">${total}</span>
-                </div>
-                <div class="h-4 w-px bg-gray-200"></div>
-                <div class="flex items-center gap-1.5">
-                    <span class="text-gray-500">בוצעו:</span>
-                    <span class="font-bold text-green-600">${done}</span>
-                </div>
-                <div class="h-4 w-px bg-gray-200"></div>
-                <div class="flex items-center gap-1.5">
-                    <span class="text-gray-500">בתהליך:</span>
-                    <span class="font-bold text-orange-500">${inProgress}</span>
-                </div>
-                <div class="h-4 w-px bg-gray-200"></div>
-                <div class="flex items-center gap-1">
-                    <div class="w-16 bg-gray-200 rounded-full h-2 overflow-hidden">
-                        <div class="bg-monday-green h-full rounded-full" style="width: ${percent}%"></div>
-                    </div>
-                    <span class="text-xs font-bold text-gray-600">${percent}%</span>
-                </div>
-            `;
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
+        // ESC Key listener to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeTaskModal();
+                const accMenu = document.getElementById('accessibilityMenu');
+                if (!accMenu.classList.contains('hidden')) toggleAccessibilityMenu();
+            }
+        });
+
+        // Initialize on Load
+        window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
